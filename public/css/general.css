@@ -5,3 +5,8 @@ html, body
 	padding:			0;
 	background-color:	aliceblue;
 }
+
+h1
+{
+	color: blue;
+}

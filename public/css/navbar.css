@@ -7,6 +7,11 @@
 
 #navbar ul
 {
-	display: inline-block;
+	list-style-type: none;
+}
+
+#navbar ul li
+{
+	display: inline;
 	margin: 0 0.5rem;
 }
