@@ -1,4 +1,8 @@
 <nav id="navbar">
+	<a href="index.php">
+		<!-- https://logoipsum.com/artwork/300 -->
+		<img src="../public/images/logoipsum-300.svg" alt="">
+	</a>
 	<ul>
 		<li>
 			<a href="index.php"> home </a>
