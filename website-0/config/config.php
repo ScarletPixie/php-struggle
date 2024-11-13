@@ -1,39 +1,97 @@
 <?php
 
 declare(strict_types=1);
+session_start();
+define('LOGFILE', __DIR__ . '/../logs/todo_error.log');
 
-function loadEnv(string $filePath): void
+function login_user(string $username, string $password): bool
 {
-	if (!file_exists($filePath))
-		throw new RuntimeException("Environment file not found at: $filePath");;
+	//	stablish connection
+	$mysql = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+	if ($mysql->connect_errno)
+		throw new RuntimeException("could not stablish connection to database " . $mysql->error);
 
-	$lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-	foreach ($lines as $line)
+	//	create and exec query
+	$query = $mysql->prepare('SELECT username, password FROM users WHERE username = ?');
+	if ($query === false)
+		throw new RuntimeException("could prepate query " . $mysql->error);
+	$query->bind_param('s', $username);
+	if (!$query->execute())
+		throw new RuntimeException("could not update database " . $mysql->error);
+
+	$result = $query->get_result();
+	if ($result->num_rows === 0)
+		return false;
+
+	//	check if passwords match
+	$passwordsMatch = false;
+	$resultRows = $result->fetch_assoc();
+	$storedPassword = $resultRows['password'];
+	if (password_verify($password, $storedPassword) === true)
 	{
-		$entry = explode('=', $line);
-		if (strpos(trim($line), '#') === 0)
-			continue;
-
-		define($entry[0], $entry[1]);
+		session_regenerate_id(true);
+		$_SESSION['id'] = $resultRows['id'];
+		$_SESSION['username'] = $resultRows['username'];
+		$passwordsMatch = true;
 	}
 
-	if (!defined('PHP_DB_HOST'))
-		throw new RuntimeException(nl2br("Missing PHP_DB_HOST entry\n"));
-	if (!defined('PHP_DB_NAME'))
-		throw new RuntimeException(nl2br("Missing PHP_DB_NAME entry\n"));
-	if (!defined('PHP_DB_USER'))
-		throw new RuntimeException(nl2br("Missing PHP_DB_USER entry\n"));
-	if (!defined('PHP_DB_PASS'))
-		throw new RuntimeException(nl2br("Missing PHP_DB_PASS entry\n"));
+	$mysql->close();
+	$query->close();
+	return $passwordsMatch;
+}
+
+function register_user(string $username, string $password): void
+{
+	//	stablish connection
+	$mysql = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+	if ($mysql->connect_errno)
+		throw new RuntimeException("could not stablish connection to database " . $mysql->error);
+
+	//	create query
+	$query = $mysql->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+	if ($query === false)
+		throw new RuntimeException("could prepate query " . $mysql->error);
+	
+	$hashed_password = password_hash($password, PASSWORD_BCRYPT);
+	$query->bind_param("ss", $username, $hashed_password);
+
+	//	updata database
+	if (!$query->execute())
+		throw new RuntimeException("could not update database " . $mysql->error);
+
+	//	close connection
+	$query->close();
+	$mysql->close();
+}
+
+function check_db_credentials(): void
+{
+	$filename = __DIR__ . '/db_credentials.php';
+
+	if (file_exists($filename) === false || is_readable($filename) === false)
+		throw new RuntimeException('cannot load db_credentials.php');
+
+	require($filename);
+
+	if (defined('DB_HOST') === false)
+		throw new RuntimeException("DB_HOST is not set");
+	if (defined('DB_NAME') === false)
+		throw new RuntimeException("DB_NAME is not set");
+	if (defined('DB_USER') === false)
+		throw new RuntimeException("DB_USER is not set");
+	if (defined('DB_PASS') === false)
+		throw new RuntimeException("DB_PASS is not set");
 }
 
 try
 {
-	loadEnv(__DIR__ . '/.env');
+	check_db_credentials();
 }
-catch (Exception $e)
+catch (RuntimeException $e)
 {
-	echo "fatal error: ". $e->getMessage();
+	error_log($e->getMessage() . PHP_EOL, 3, LOGFILE);
+	http_response_code(500);
+	exit();
 }
 
 ?>

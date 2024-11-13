@@ -8,7 +8,7 @@
 		}
 
 		$name = trim($_POST["username"]);
-		$pass = trim($_POST["password"]);
+		$pass = $_POST["password"];
 	
 		if (strlen($name < 3) || strlen($pass) < 3)
 		{
@@ -32,7 +32,19 @@
 			return;
 		}
 
-		require_once __DIR__ . '/../config/config.php';
+		require(__DIR__ . '/../config/config.php');
+
+		try
+		{
+			register_user($name, $pass);
+			echo "successfuly registered user";
+			header("Location: login.php");
+			exit;
+		}
+		catch (Exception $e)
+		{
+			error_log($e->getMessage() . PHP_EOL, 3, LOGFILE);
+		}
 	}
 ?>
 
@@ -44,6 +56,7 @@
 	<title>registration</title>
 </head>
 <body>
+	<H1>REGISTRATION PAGE</H1>
 	<form action="register.php" method="post">
 		<input type="text" name="username">
 		<input type="password" name="password">
