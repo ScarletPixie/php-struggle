@@ -3,6 +3,7 @@
 	if (isset($_SESSION['username']) === false)
 	{
 		header("Location: login.php");
+		echo '<a href="login.php">go to login page</a>';
 		exit();
 	}
 ?>
@@ -15,9 +16,12 @@
 	<title>hello <?php echo $_SESSION['username']?></title>
 </head>
 <body>
-	<h1>HELLO <?php echo $_SESSION['username']?></h1>
+	<h1>hello <?php echo $_SESSION['username']?></h1>
 	<form action="logout.php" method="post">
 		<button type="submit">logout</button>
+	</form>
+	<form action="create_task.php" method="post">
+		
 	</form>
 </body>
 </html>

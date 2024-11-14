@@ -9,7 +9,7 @@ function login_user(string $username, string $password): bool
 		throw new RuntimeException("could not stablish connection to database: " . $mysql->error);
 
 	//	create and exec query
-	$query = $mysql->prepare('SELECT username, password FROM users WHERE username = ?');
+	$query = $mysql->prepare('SELECT id, username, password FROM users WHERE username = ?');
 	if ($query === false)
 		throw new RuntimeException("could prepate query: " . $mysql->error);
 	$query->bind_param('s', $username);
@@ -33,6 +33,7 @@ function login_user(string $username, string $password): bool
 	if (password_verify($password, $storedPassword) === true)
 	{
 		session_regenerate_id(true);
+		$_SESSION['id'] = $resultRows['id'];
 		$_SESSION['username'] = $resultRows['username'];
 		$validLogin = true;
 	}
@@ -90,8 +91,12 @@ function validate_form_input(string $name, string $pass): array
 {
 	$errors = [];
 
-	if (strlen($name) < 3 || strlen($pass) < 3)
+	$nameLen = strlen($name);
+	$passLen = strlen($pass);
+	if ($nameLen < 3 || $passLen < 3)
 		$errors[] = 'username/password must at least 3 characters long';
+	else if ($nameLen > 255 || $passLen > 255)
+		$errors[] = 'username/password too long';
 	else if (preg_match('/[^a-zA-Z]/', $name))
 		$errors[] = 'only alphabetic characters allowed in username';
 	else if (preg_match('/\s/', $pass))
