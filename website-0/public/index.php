@@ -16,5 +16,8 @@
 </head>
 <body>
 	<h1>HELLO <?php echo $_SESSION['username']?></h1>
+	<form action="logout.php" method="post">
+		<button type="submit">logout</button>
+	</form>
 </body>
 </html>

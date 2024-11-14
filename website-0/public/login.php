@@ -1,49 +1,38 @@
 <?php
+	$errors = [];
+	session_start();
+	if (!isset($_SESSION['csrf_token']))
+		$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
 	if ($_SERVER['REQUEST_METHOD'] === 'POST')
 	{
-		if (isset($_POST["username"]) === false || isset($_POST["password"]) === false)
+		if (!isset($_SESSION['csrf_token']) || !isset($_POST['csrf_token']) || ($_SESSION['csrf_token'] !== $_POST['csrf_token']))
 		{
-			echo "please enter name and password";
-			return;
+			echo "Invalid form!";
+			exit(0);
 		}
-
-		$name = trim($_POST["username"]);
-		$pass = $_POST["password"];
-	
-		if (strlen($name < 3) || strlen($pass) < 3)
-		{
-			echo "name/pass must be at least 3 characters long";
-			return;
-		}
-		if (preg_match('/[^a-zA-Z]/', $name))
-		{
-			echo "name can only contain letters";
-			return;
-		}
-		if (preg_match('/\s/', $pass))
-		{
-			echo "password cannot contain spaces";
-			return;
-		}
-
-		if (htmlspecialchars($name) !== $name || htmlspecialchars($pass !== $pass))
-		{
-			echo "invalid chars!";
-			return;
-		}
-
-		require(__DIR__ . '/../config/config.php');
 
 		try
 		{
-			if (login_user($name, $pass) === false)
-				echo "invalid user/password";
-			else
+			require(__DIR__ . '/../src/auth.php');
+			require(__DIR__ . '/../config/config.php');
+
+			if (isset($_POST["username"]) === false || isset($_POST["password"]) === false)
+				$errors[] = "please enter name and password";
+			else if (count($errors) === 0)
 			{
-				header("Location: index.php");
-				exit;
+				$errors = validate_form_input($_POST["username"], $_POST["password"]);
+				if (count($errors) === 0)
+				{
+					if (login_user($_POST["username"], $_POST["password"]))
+					{
+						header("Location: index.php");
+						echo "successfuly registered user: " . '<a href="index.php">go to index page</a>';
+						exit(0);
+					}
+					$errors[] = "invalid username/password";
+				}
 			}
-				
 		}
 		catch (Exception $e)
 		{
@@ -64,7 +53,13 @@
 	<form action="login.php" method="post">
 		<input type="text" name="username">
 		<input type="password" name="password">
+		<input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
 		<button type="submit" name="submit">Submit</button>
+		<div>
+			<?php
+				echo((count($errors) === 0) ? '' : join("", $errors));
+			?>
+		</div>
 	</form>
 </body>
 </html>
