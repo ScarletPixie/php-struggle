@@ -31,4 +31,3 @@ if (file_put_contents($dbCredFile, join(PHP_EOL, $fileContent)) === false)
 }
 
 echo "successfully created db_credentials.php file".PHP_EOL;
-?>
